@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Terminal (demo)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build_terminal.py",
+      "args": ["--demo", "--serve"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Terminal (real, ~200 tickers)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build_terminal.py",
+      "args": ["--serve"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Demo (synthetic data)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "args": ["--demo"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Pooled universe (synthetic, relative)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "args": ["--universe", "--relative", "--serve"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "NVDA / SMH (Yahoo Finance)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "args": ["--ticker", "NVDA", "--sector", "SMH", "--serve"],
+      "console": "integratedTerminal"
+    }
+  ]
+}

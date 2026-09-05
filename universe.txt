@@ -1,0 +1,35 @@
+# One ticker per line. These are the active names; build_universe.py --source fmp
+# adds delisted names on top from FMP's delisted-companies feed.
+# Semiconductors and equipment, roughly SMH/SOXX membership plus a few smaller names.
+NVDA
+AMD
+INTC
+AVGO
+QCOM
+TXN
+MU
+AMAT
+LRCX
+KLAC
+ADI
+MRVL
+NXPI
+ON
+MCHP
+SWKS
+QRVO
+TER
+ENTG
+MPWR
+LSCC
+WOLF
+SMTC
+POWI
+DIOD
+AMKR
+FORM
+ACLS
+COHU
+UCTT
+ICHR
+KLIC

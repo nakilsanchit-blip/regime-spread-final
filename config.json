@@ -1,0 +1,28 @@
+{
+  "ticker": "NVDA",
+  "sector": "SMH",
+  "start": "2010-01-01",
+  "horizon": 21,
+  "factors": [
+    "stock_momentum",
+    "sector_momentum",
+    "vix_regime"
+  ],
+  "momentum_lookback": 63,
+  "vol_window": 21,
+  "regime_window": 252,
+  "bucket_edges_pct": [
+    -10,
+    -5,
+    -2,
+    0,
+    2,
+    5,
+    10
+  ],
+  "prior_strength": 20,
+  "min_train_years": 3,
+  "refit_every": 21,
+  "holdout_fraction": 0.2,
+  "relative": false
+}

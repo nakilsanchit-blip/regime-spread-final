@@ -1,0 +1,85 @@
+# Rebuilds the terminal every weekday after the US close and publishes it to
+# GitHub Pages. Also refreshes the EDGAR distress panel weekly.
+#
+# One-time setup in the repo:
+#   Settings -> Pages -> Source: "GitHub Actions"
+#   Settings -> Secrets -> Actions -> New secret: EDGAR_USER_AGENT = "Your Name you@example.com"
+# Then push, or run the workflow by hand from the Actions tab.
+
+name: build-terminal
+
+on:
+  schedule:
+    - cron: "45 21 * * 1-5"      # 21:45 UTC = 5:45pm ET, after the close
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      # EDGAR panel: cached between runs, refreshed on Mondays or when missing.
+      - name: Restore EDGAR panel
+        uses: actions/cache@v4
+        with:
+          path: data/edgar
+          key: edgar-panel-${{ github.run_id }}
+          restore-keys: edgar-panel-
+
+      - name: Fetch EDGAR (weekly)
+        if: ${{ env.EDGAR_USER_AGENT != '' }}
+        env:
+          EDGAR_USER_AGENT: ${{ secrets.EDGAR_USER_AGENT }}
+        run: |
+          if [ ! -f data/edgar/panel.csv ] || [ "$(date +%u)" = "1" ]; then
+            python fetch_edgar.py --years 2012 $(date +%Y) || echo "EDGAR fetch failed; using cached panel if any"
+          fi
+
+      - name: Distress model
+        run: |
+          if [ -f data/edgar/panel.csv ]; then python run_distress.py; else echo "no EDGAR panel yet"; fi
+
+      - name: Build terminal
+        run: python build_terminal.py
+
+      - name: Assemble site
+        run: |
+          mkdir -p site
+          cp output/terminal.html site/terminal.html
+          cp output/dashboard.html site/dashboard.html 2>/dev/null || true
+          cp output/distress.json site/distress.json 2>/dev/null || true
+          echo '<meta http-equiv="refresh" content="0; url=terminal.html">' > site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,198 @@
+# ticker, name   (one per line; # lines ignored)
+AAPL, Apple
+MSFT, Microsoft
+NVDA, NVIDIA
+AMZN, Amazon
+GOOGL, Alphabet
+META, Meta Platforms
+TSLA, Tesla
+AVGO, Broadcom
+BRK-B, Berkshire Hathaway
+LLY, Eli Lilly
+JPM, JPMorgan Chase
+V, Visa
+UNH, UnitedHealth
+XOM, Exxon Mobil
+MA, Mastercard
+COST, Costco
+JNJ, Johnson & Johnson
+PG, Procter & Gamble
+HD, Home Depot
+WMT, Walmart
+ABBV, AbbVie
+NFLX, Netflix
+BAC, Bank of America
+CRM, Salesforce
+ORCL, Oracle
+CVX, Chevron
+KO, Coca-Cola
+MRK, Merck
+AMD, Advanced Micro Devices
+PEP, PepsiCo
+CSCO, Cisco
+ADBE, Adobe
+TMO, Thermo Fisher
+ACN, Accenture
+LIN, Linde
+MCD, McDonald's
+ABT, Abbott Labs
+WFC, Wells Fargo
+INTU, Intuit
+DIS, Disney
+GE, GE Aerospace
+CAT, Caterpillar
+TXN, Texas Instruments
+QCOM, Qualcomm
+VZ, Verizon
+IBM, IBM
+AMGN, Amgen
+PM, Philip Morris
+ISRG, Intuitive Surgical
+DHR, Danaher
+NOW, ServiceNow
+CMCSA, Comcast
+GS, Goldman Sachs
+SPGI, S&P Global
+AMAT, Applied Materials
+PFE, Pfizer
+UBER, Uber
+NEE, NextEra Energy
+RTX, RTX
+HON, Honeywell
+UNP, Union Pacific
+LOW, Lowe's
+BKNG, Booking Holdings
+T, AT&T
+AXP, American Express
+COP, ConocoPhillips
+MS, Morgan Stanley
+ETN, Eaton
+PGR, Progressive
+BLK, BlackRock
+SYK, Stryker
+TJX, TJX
+LMT, Lockheed Martin
+VRTX, Vertex
+ADP, ADP
+BSX, Boston Scientific
+MU, Micron
+PANW, Palo Alto Networks
+C, Citigroup
+LRCX, Lam Research
+MDT, Medtronic
+SCHW, Charles Schwab
+ADI, Analog Devices
+GILD, Gilead
+BMY, Bristol-Myers Squibb
+DE, Deere
+REGN, Regeneron
+TMUS, T-Mobile
+KLAC, KLA
+CB, Chubb
+MMC, Marsh McLennan
+SBUX, Starbucks
+FI, Fiserv
+PLD, Prologis
+ANET, Arista Networks
+MDLZ, Mondelez
+AMT, American Tower
+SO, Southern Co
+INTC, Intel
+CI, Cigna
+DUK, Duke Energy
+ELV, Elevance
+ZTS, Zoetis
+MO, Altria
+ICE, Intercontinental Exchange
+KKR, KKR
+SHW, Sherwin-Williams
+GD, General Dynamics
+EQIX, Equinix
+CME, CME Group
+WM, Waste Management
+CL, Colgate-Palmolive
+NKE, Nike
+PYPL, PayPal
+TGT, Target
+APH, Amphenol
+CVS, CVS Health
+ITW, Illinois Tool Works
+SNPS, Synopsys
+CDNS, Cadence
+MCK, McKesson
+EOG, EOG Resources
+CTAS, Cintas
+ORLY, O'Reilly Automotive
+PH, Parker-Hannifin
+NOC, Northrop Grumman
+MAR, Marriott
+USB, U.S. Bancorp
+BDX, Becton Dickinson
+EMR, Emerson
+PNC, PNC Financial
+CRWD, CrowdStrike
+MCO, Moody's
+FDX, FedEx
+AON, Aon
+ECL, Ecolab
+GM, General Motors
+F, Ford
+CSX, CSX
+TDG, TransDigm
+APD, Air Products
+SLB, Schlumberger
+ROP, Roper
+AJG, Arthur J. Gallagher
+NSC, Norfolk Southern
+HCA, HCA Healthcare
+MSI, Motorola Solutions
+WELL, Welltower
+COF, Capital One
+TFC, Truist
+PSA, Public Storage
+AZO, AutoZone
+DLR, Digital Realty
+ADSK, Autodesk
+OKE, ONEOK
+BK, BNY Mellon
+CARR, Carrier
+GWW, Grainger
+PCAR, PACCAR
+FCX, Freeport-McMoRan
+NXPI, NXP Semiconductors
+ROST, Ross Stores
+CPRT, Copart
+AFL, Aflac
+TRV, Travelers
+MET, MetLife
+SRE, Sempra
+AEP, American Electric Power
+PSX, Phillips 66
+KMB, Kimberly-Clark
+ALL, Allstate
+O, Realty Income
+D, Dominion Energy
+MPC, Marathon Petroleum
+VLO, Valero
+LHX, L3Harris
+AIG, AIG
+JCI, Johnson Controls
+CMG, Chipotle
+FTNT, Fortinet
+PAYX, Paychex
+KMI, Kinder Morgan
+FAST, Fastenal
+ABNB, Airbnb
+MSCI, MSCI
+DHI, D.R. Horton
+LEN, Lennar
+EW, Edwards Lifesciences
+IDXX, IDEXX
+CTSH, Cognizant
+YUM, Yum! Brands
+HLT, Hilton
+DASH, DoorDash
+PLTR, Palantir
+COIN, Coinbase
+SMCI, Super Micro Computer
+ARM, Arm Holdings

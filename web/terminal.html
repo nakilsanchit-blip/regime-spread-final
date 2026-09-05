@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regime Terminal</title>
+<style>
+  :root {
+    --bg: #07090B;
+    --panel: #0E1114;
+    --panel-2: #131719;
+    --line: #1C2126;
+    --line-2: #262D33;
+    --text: #E8EAEC;
+    --muted: #7C8791;
+    --dim: #4A535B;
+    --green: #2BD576;
+    --green-dim: #14472B;
+    --green-soft: rgba(43, 213, 118, 0.14);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .app { display: grid; grid-template-columns: 250px 1fr 168px; height: 100vh; }
+
+  /* ---------- sidebar ---------- */
+  .side { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .brand { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; }
+  .brand b { letter-spacing: 0.06em; font-size: 12px; }
+  .brand span { color: var(--dim); font-size: 11px; }
+  .search { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .search input { width: 100%; background: var(--panel); border: 1px solid var(--line-2); color: var(--text); padding: 7px 10px; font: inherit; border-radius: 2px; outline: none; }
+  .search input:focus { border-color: var(--green); }
+  .list { overflow-y: auto; flex: 1; min-height: 0; }
+  .row { display: grid; grid-template-columns: 62px 1fr 64px; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); cursor: pointer; align-items: center; }
+  .row:hover { background: var(--panel); }
+  .row.on { background: var(--green-soft); border-left: 2px solid var(--green); padding-left: 12px; }
+  .row .t { font-weight: 600; letter-spacing: 0.02em; }
+  .row .n { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+  .row .p { text-align: right; }
+  .row .p small { display: block; font-size: 11px; }
+  .up { color: var(--green); }
+  .dn { color: var(--text); }
+  .side-foot { padding: 8px 14px; border-top: 1px solid var(--line); color: var(--dim); font-size: 11px; }
+
+  /* ---------- main ---------- */
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  header { padding: 18px 28px 14px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: end; }
+  header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; line-height: 1; }
+  header h1 small { font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 10px; letter-spacing: 0; }
+  .px { font-size: 28px; font-weight: 500; }
+  .chg { display: flex; gap: 18px; margin-top: 6px; color: var(--muted); }
+  .chg b { font-weight: 500; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-self: end; }
+  .chip { border: 1px solid var(--line-2); padding: 4px 8px; font-size: 11px; color: var(--muted); border-radius: 2px; }
+  .chip.on { border-color: var(--green); color: var(--green); }
+  .content { padding: 22px 28px 40px; overflow-y: auto; flex: 1; }
+  h2 { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+  .grid { display: grid; gap: 18px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); padding: 16px 18px; border-radius: 3px; min-width: 0; overflow-x: auto; }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { text-align: right; }
+  .big { font-size: 26px; font-weight: 500; line-height: 1.1; }
+  .big small { font-size: 13px; color: var(--muted); margin-left: 6px; }
+  .lbl { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  p { color: var(--text); line-height: 1.5; margin: 0 0 8px; max-width: 78ch; }
+  p.m { color: var(--muted); }
+  .verdict { border-left: 3px solid var(--green); padding: 6px 12px; background: var(--panel-2); }
+  .verdict.flat { border-color: var(--dim); }
+  .verdict.bad { border-color: var(--text); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
+  th:first-child, td:first-child { text-align: left; }
+  tr.hl td { background: var(--green-soft); }
+  .heat td { text-align: center; padding: 5px 4px; font-size: 11px; }
+  .heat td:first-child { text-align: left; white-space: nowrap; }
+  .heat th { font-size: 10px; }
+  svg text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+  .seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+  .seg button { background: transparent; border: 0; color: var(--muted); padding: 5px 12px; font: inherit; cursor: pointer; }
+  .seg button.on { background: var(--green-soft); color: var(--green); }
+  .bar-h { display: grid; grid-template-columns: 110px 1fr 56px; gap: 10px; align-items: center; margin: 5px 0; }
+  .bar-h .track { height: 8px; background: var(--line); border-radius: 1px; overflow: hidden; }
+  .bar-h .fill { height: 100%; background: var(--green); }
+  .bar-h .fill.g { background: var(--dim); }
+  .note { border: 1px solid var(--line-2); padding: 12px 14px; color: var(--muted); border-radius: 3px; }
+  .empty { color: var(--dim); padding: 60px; text-align: center; }
+
+  /* ---------- rail ---------- */
+  .rail { border-left: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+  .rail button { background: transparent; border: 1px solid transparent; color: var(--muted); text-align: left; padding: 9px 12px; font: inherit; cursor: pointer; border-radius: 2px; letter-spacing: 0.02em; }
+  .rail button:hover { background: var(--panel); color: var(--text); }
+  .rail button.on { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+  .rail .sp { flex: 1; }
+  .rail .foot { color: var(--dim); font-size: 11px; padding: 8px 12px; line-height: 1.5; }
+  :focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+  ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>REGIME</b><span id="count"></span></div>
+    <div class="search"><input id="q" placeholder="Search ticker or name" autocomplete="off"></div>
+    <div class="list" id="list"></div>
+    <div class="side-foot" id="foot"></div>
+  </aside>
+  <main>
+    <header id="head"></header>
+    <div class="content" id="content"><div class="empty">Select a ticker</div></div>
+  </main>
+  <nav class="rail" id="rail"></nav>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const TABS = [["overview","Overview"],["spread","Spread"],["markov","Markov"],["ev","EV / Kelly"],["backtest","Backtest"],["distress","Distress"]];
+let cur = null, tab = "overview", spreadSrc = "pooled";
+
+const pct = (x, d = 0) => x === null || x === undefined || Number.isNaN(x) ? "—" : (x * 100).toFixed(d) + "%";
+const spct = (x, d = 1) => x === null || x === undefined ? "—" : (x >= 0 ? "+" : "−") + Math.abs(x * 100).toFixed(d) + "%";
+const money = x => { const a = Math.abs(x); const t = a >= 100 ? a.toFixed(0) : a >= 10 ? a.toFixed(1) : a.toFixed(2); return (x < 0 ? "−$" : "$") + t; };
+const cls = x => x === null || x === undefined ? "" : x >= 0 ? "up" : "dn";
+const bucketDollar = b => b.lo === null ? "below " + money(b.hi) : b.hi === null ? "above " + money(b.lo) : money(b.lo) + " to " + money(b.hi);
+const vClass = v => !v ? "flat" : v.startsWith("The factors beat") || v.startsWith("The filing states predict") ? "" : v.includes("worse") ? "bad" : "flat";
+const factorWords = {
+  stock_momentum: ["Mom ↑", "Mom ↓"], sector_momentum: ["Sector ↑", "Sector ↓"],
+  vol_regime: ["Vol high", "Vol low"], vix_regime: ["VIX high", "VIX low"],
+  rate_trend: ["Rates ↑", "Rates ↓"], volume_regime: ["Volume high", "Volume low"],
+};
+
+// ------------------------------------------------------------------ sidebar
+function renderList(filter = "") {
+  const f = filter.trim().toLowerCase();
+  const syms = Object.keys(D.tickers).filter(s => !f || s.toLowerCase().includes(f) || D.tickers[s].name.toLowerCase().includes(f));
+  document.getElementById("list").innerHTML = syms.map(s => {
+    const t = D.tickers[s];
+    return `<div class="row${s === cur ? " on" : ""}" data-s="${s}">
+      <span class="t">${s}</span><span class="n">${t.name}</span>
+      <span class="p num">$${t.price.toFixed(t.price >= 100 ? 0 : 2)}<small class="${cls(t.chg_1d)}">${spct(t.chg_1d)}</small></span></div>`;
+  }).join("");
+  document.getElementById("count").textContent = `${syms.length} / ${D.n_tickers}`;
+}
+document.getElementById("list").addEventListener("click", e => { const r = e.target.closest(".row"); if (r) select(r.dataset.s); });
+document.getElementById("q").addEventListener("input", e => renderList(e.target.value));
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const rows = [...document.querySelectorAll(".row")]; const i = rows.findIndex(r => r.dataset.s === cur);
+  if (e.key === "ArrowDown" && rows[i + 1]) select(rows[i + 1].dataset.s);
+  if (e.key === "ArrowUp" && rows[i - 1]) select(rows[i - 1].dataset.s);
+  const k = parseInt(e.key); if (k >= 1 && k <= TABS.length) setTab(TABS[k - 1][0]);
+});
+
+// ------------------------------------------------------------------ rail
+function renderRail() {
+  document.getElementById("rail").innerHTML = TABS.map(([id, label], i) =>
+    `<button class="${tab === id ? "on" : ""}" data-t="${id}"><span class="num" style="color:var(--dim);margin-right:8px">${i + 1}</span>${label}</button>`).join("")
+    + `<div class="sp"></div><div class="foot">${D.horizon}d horizon<br>vs ${D.sector}<br>${D.source}<br>${D.generated_at}</div>`;
+}
+document.getElementById("rail").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.t); });
+function setTab(t) { tab = t; renderRail(); renderContent(); }
+
+// ------------------------------------------------------------------ header
+function select(s) {
+  cur = s; renderList(document.getElementById("q").value); renderHeader(); renderContent();
+  const r = document.querySelector(`.row[data-s="${s}"]`); if (r) r.scrollIntoView({ block: "nearest" });
+}
+function renderHeader() {
+  const t = D.tickers[cur];
+  document.getElementById("head").innerHTML = `
+    <div>
+      <h1>${t.ticker}<small>${t.name}</small></h1>
+      <div class="px num" style="margin-top:10px">$${t.price.toFixed(2)}</div>
+      <div class="chg num">
+        <span>1D <b class="${cls(t.chg_1d)}">${spct(t.chg_1d)}</b></span>
+        <span>1M <b class="${cls(t.chg_1m)}">${spct(t.chg_1m)}</b></span>
+        <span>1Y <b class="${cls(t.chg_1y)}">${spct(t.chg_1y)}</b></span>
+        <span>σ ann <b>${pct(t.ann_vol)}</b></span>
+        <span style="color:var(--dim)">${t.as_of}</span>
+      </div>
+    </div>
+    <div class="chips">${D.factors.map(f => `<span class="chip on">${(factorWords[f] || [f, "not " + f])[t.factor_values[f] ? 0 : 1]}</span>`).join("")}
+      ${t.distress ? `<span class="chip" style="border-color:${t.distress.p_bad_state > 0.1 ? "var(--text)" : "var(--line-2)"}">EDGAR exit ${pct(t.distress.p_bad_state, 1)}</span>` : ""}</div>`;
+}
+
+// ------------------------------------------------------------------ charts
+function priceChart(t) {
+  const c = t.history.close, n = c.length, W = 900, H = 240, p = 10;
+  const lo = Math.min(...c), hi = Math.max(...c);
+  const x = i => p + (W - 2 * p) * i / (n - 1), y = v => p + (H - 2 * p) * (1 - (v - lo) / (hi - lo || 1));
+  const path = c.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join("");
+  const col = c[n - 1] >= c[0] ? "var(--green)" : "var(--text)";
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" style="display:block">`;
+  [0.25, 0.5, 0.75].forEach(f => { const yy = p + (H - 2 * p) * f; s += `<line x1="${p}" x2="${W - p}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/>`; });
+  s += `<path d="${path}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>`;
+  s += `</svg>`;
+  return `<div class="card" style="padding:12px 14px">${s}
+    <div class="num" style="display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:6px">
+      <span>${t.history.dates[0]}</span><span>low $${lo.toFixed(2)} · high $${hi.toFixed(2)}</span><span>${t.history.dates[n - 1]}</span></div></div>`;
+}
+
+function spreadChart(t, src) {
+  const model = src === "pooled" ? t.pooled.probs : t.own.probs;
+  const base = src === "pooled" ? D.pooled_unconditional : t.own.baseline;
+  const n = model.length, W = 900, H = 300, padL = 8, top = 34, bottom = 74, bw = (W - 2 * padL) / n;
+  const maxP = Math.max(...model, ...base) * 1.15, y0 = H - bottom, y = v => top + (y0 - top) * (1 - v / maxP);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%">`;
+  const zi = t.buckets_dollars.findIndex(b => b.lo_pct !== null && b.lo_pct >= 0);
+  if (zi > 0) { const xx = padL + zi * bw; s += `<line x1="${xx}" x2="${xx}" y1="${top - 14}" y2="${y0 + 6}" stroke="var(--line-2)" stroke-dasharray="3 4"/>`; }
+  for (let i = 0; i < n; i++) {
+    const x = padL + i * bw, inner = bw * 0.6, ox = x + (bw - inner) / 2, mw = inner * 0.7, mx = x + (bw - mw) / 2;
+    s += `<rect x="${ox}" y="${y(base[i])}" width="${inner}" height="${y0 - y(base[i])}" fill="none" stroke="var(--dim)" stroke-width="1.5"/>`;
+    s += `<rect x="${mx}" y="${y(model[i])}" width="${mw}" height="${y0 - y(model[i])}" fill="var(--green)" opacity="0.9"/>`;
+    s += `<text x="${x + bw / 2}" y="${y(model[i]) - 6}" text-anchor="middle" style="fill:var(--green);font-size:12px;font-weight:600">${pct(model[i])}</text>`;
+    s += `<text x="${x + bw / 2}" y="${y0 + (i % 2 ? 36 : 18)}" text-anchor="middle" style="fill:var(--text);font-size:11px">${bucketDollar(t.buckets_dollars[i])}</text>`;
+    s += `<text x="${x + bw / 2}" y="${y0 + 56}" text-anchor="middle">${D.buckets_pct[i]}</text>`;
+  }
+  s += `<line x1="${padL}" x2="${W - padL}" y1="${y0}" y2="${y0}" stroke="var(--line-2)"/></svg>`;
+  return s;
+}
+
+function heat(matrix, rowLabels, colLabels, counts) {
+  const short = s => s.split("/").map(w => ({Up:"↑",Down:"↓",HighVIX:"X+",LowVIX:"X−",HighVol:"V+",LowVol:"V−",RatesUp:"R↑",RatesDown:"R↓",HiVolume:"Q+",LoVolume:"Q−"}[w] || w.replace(/Equity|Runway|Concern|Burning|CashPositive|GoingConcern|NoGC/g, m => ({Equity:"Eq",Runway:"Rw",Concern:"C",Burning:"Burn",CashPositive:"Cash+",GoingConcern:"GC",NoGC:"noGC"}[m])))).join("/");
+  let h = `<table class="heat"><thead><tr><th></th>${colLabels.map(c => `<th>${short(c)}</th>`).join("")}</tr></thead><tbody>`;
+  matrix.forEach((row, i) => {
+    const n = counts ? counts[i].reduce((a, b) => a + b, 0) : null;
+    h += `<tr><td>${rowLabels[i]}${n !== null ? ` <span style="color:var(--dim)">${n}</span>` : ""}</td>`;
+    row.forEach(p => { const a = Math.min(0.9, p * 1.7); h += `<td style="background:rgba(43,213,118,${a.toFixed(2)});color:${a > 0.5 ? "#06110A" : "var(--text)"}">${pct(p)}</td>`; });
+    h += `</tr>`;
+  });
+  return h + `</tbody></table>`;
+}
+
+// ------------------------------------------------------------------ tabs
+function renderContent() {
+  const el = document.getElementById("content");
+  if (!cur) { el.innerHTML = `<div class="empty">Select a ticker</div>`; return; }
+  const t = D.tickers[cur];
+  el.innerHTML = ({ overview, spread, markov, ev, backtest, distress })[tab](t);
+  el.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { spreadSrc = b.dataset.src; renderContent(); }));
+}
+
+function overview(t) {
+  const P = t.pooled, own = t.own;
+  return `
+    <h2>Price, 3y</h2>${priceChart(t)}
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card"><div class="big num ${P.p_up >= P.p_up_baseline ? "up" : ""}">${pct(P.p_up, 1)}<small>base ${pct(P.p_up_baseline, 1)}</small></div><div class="lbl">P(beats ${D.sector}, ${D.horizon}d), pooled model, today's state</div></div>
+      <div class="card"><div class="big num">${money(P.moments.ev * t.price)}<small>${spct(P.moments.ev, 2)}</small></div><div class="lbl">expected move vs ${D.sector} · σ ${money(P.moments.std * t.price)} (${pct(P.moments.std, 1)})</div></div>
+      <div class="card"><div class="big num">${t.distress ? pct(t.distress.p_bad_state, 1) : "—"}</div><div class="lbl">${t.distress ? `EDGAR: P(bankrupt or deregistered within 2y), filings ${t.distress.year}` : "no EDGAR match (run fetch_edgar + run_distress)"}</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card"><h2>Pooled model, ${D.n_tickers} tickers</h2><div class="verdict ${vClass(D.pooled_backtest.verdict)}">${D.pooled_backtest.verdict}</div>
+        <p class="m" style="margin-top:8px">Walk-forward gain ${D.pooled_backtest.dev.logloss_gain >= 0 ? "+" : ""}${D.pooled_backtest.dev.logloss_gain.toFixed(4)}, 90% CI [${D.pooled_backtest.dev.logloss_gain_ci90.join(", ")}]</p></div>
+      <div class="card"><h2>${t.ticker}'s own history</h2><div class="verdict ${vClass(own.backtest.verdict)}">${own.backtest.verdict}</div>
+        <p class="m" style="margin-top:8px">${own.backtest.logloss_gain !== undefined ? `Gain ${own.backtest.logloss_gain >= 0 ? "+" : ""}${own.backtest.logloss_gain.toFixed(4)}, CI [${own.backtest.logloss_gain_ci90.join(", ")}] · ${own.independent_obs} independent obs in today's state` : ""}</p></div>
+    </div>
+    <p class="m" style="margin-top:18px">Everything on the Spread, Markov, EV tabs is drawn twice where it matters: the model (green) and the all-days baseline (grey outline). If they match, today's state isn't telling you anything, and that's a result, not a bug. The ticker list is survivors; the Distress tab is the part built on data that includes companies that died.</p>`;
+}
+
+function spread(t) {
+  const src = spreadSrc, S = src === "pooled" ? t.pooled : t.own;
+  const base = src === "pooled" ? D.pooled_unconditional : t.own.baseline;
+  return `
+    <div class="seg"><button class="${src === "pooled" ? "on" : ""}" data-src="pooled">Pooled (${D.n_tickers} tickers)</button><button class="${src === "own" ? "on" : ""}" data-src="own">${t.ticker} only</button></div>
+    <div class="card">${spreadChart(t, src)}
+      <div style="display:flex;gap:28px;margin-top:10px;color:var(--muted);font-size:12px"><span><span style="display:inline-block;width:12px;height:8px;background:var(--green);margin-right:6px"></span>given today's state: ${t.state}</span><span><span style="display:inline-block;width:12px;height:6px;border:1.5px solid var(--dim);margin-right:6px"></span>all days</span></div></div>
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card"><div class="big num">${pct(S.p_up, 1)}<small>base ${pct(S.p_up_baseline, 1)}</small></div><div class="lbl">chance ${t.ticker} beats ${D.sector} over ${D.horizon} trading days</div></div>
+      <div class="card"><div class="big num">${S.independent_obs.toLocaleString()}</div><div class="lbl">independent observations behind today's state</div></div>
+      <div class="card"><div class="big num">${src === "own" ? pct(t.own.weight_on_state) : "—"}</div><div class="lbl">${src === "own" ? "weight on state history; the rest is the all-days histogram" : "pooled model: every ticker's history in this state"}</div></div>
+    </div>
+    <p class="m" style="margin-top:16px">Buckets are ${t.ticker}'s ${D.horizon}-day move minus ${D.sector}'s, in dollars at today's price. "${t.ticker} only" splits ~${Math.round(t.own.state_rows.reduce((a, b) => a + b, 0) / D.horizon)} independent months eight ways and shrinks each toward the all-days bars; the pooled view has ${(D.pooled_state_rows.reduce((a, b) => a + b, 0) / D.horizon).toLocaleString(undefined, {maximumFractionDigits: 0})} months across all tickers.</p>`;
+}
+
+function markov(t) {
+  return `
+    <div class="grid">
+      <div class="card"><h2>${t.ticker}: state today → state in ${D.horizon} days</h2>${heat(t.own.transition, D.states, D.states, t.own.transition_counts)}
+        <p class="m" style="margin-top:10px">Row = today's state, columns = where it was ${D.horizon} trading days later, from ${t.ticker}'s own history. Diagonal is stickiness. Row counts in grey; thin rows are shrunk toward the overall state mix.</p></div>
+      <div class="card"><h2>Pooled: state today → state in ${D.horizon} days</h2>${heat(D.pooled_transition, D.states, D.states)}
+        <p class="m" style="margin-top:10px">Same matrix from every ticker's history. Transitions are counted within each ticker, never across.</p></div>
+    </div>
+    <div class="card" style="margin-top:18px"><h2>What each state has meant for beating ${D.sector}</h2>
+      <table><thead><tr><th>State</th><th>Pooled rows</th><th>Pooled P(beats)</th><th>${t.ticker} rows</th><th>${t.ticker} P(beats)</th></tr></thead><tbody>
+      ${D.states.map((s, i) => `<tr class="${s === t.state ? "hl" : ""}"><td>${s}</td><td class="num">${D.pooled_state_rows[i].toLocaleString()}</td><td class="num">${pct(D.pooled_state_p_up[i], 1)}</td><td class="num">${t.own.state_rows[i]}</td><td class="num">${pct(t.own.state_p_up[i], 1)}</td></tr>`).join("")}
+      </tbody></table></div>`;
+}
+
+function ev(t) {
+  const P = t.price, rows = [["Pooled, today's state", t.pooled.moments], ["Pooled, all days", t.pooled.moments_baseline], [`${t.ticker} only, today's state`, t.own.moments], [`${t.ticker} only, all days`, t.own.moments_baseline]];
+  const kelly = k => k <= 0 ? "0%" : k > 1 ? pct(k) + " (leverage)" : pct(k);
+  const mo = t.pooled.moments;
+  return `
+    <div class="card"><table><thead><tr><th>Source</th><th>Expected move</th><th>σ</th><th>EV ÷ σ</th><th>Half Kelly</th><th>Full Kelly</th></tr></thead><tbody>
+      ${rows.map(([n, m]) => `<tr class="num"><td style="font-family:var(--sans)">${n}</td><td>${money(m.ev * P)} <span style="color:var(--muted)">${spct(m.ev, 2)}</span></td><td>${money(m.std * P)} <span style="color:var(--muted)">${pct(m.std, 1)}</span></td><td>${(m.ev_over_std >= 0 ? "+" : "") + m.ev_over_std.toFixed(2)}</td><td>${kelly(m.kelly_half)}</td><td>${kelly(m.kelly_full)}</td></tr>`).join("")}
+    </tbody></table>
+    <p class="m" style="margin-top:12px">EV is each bucket's probability times the average move history produced inside that bucket. Kelly is EV ÷ variance, the bankroll fraction that maximises long-run growth if the distribution is right. Relative mode: a positive EV means long ${t.ticker} / short ${D.sector} in equal dollars. If the Backtest tab says the state adds noise, the "all days" rows are the only ones with any standing, and the pooled all-days row is the one least contaminated by ${t.ticker} having survived.</p></div>
+    <div class="card" style="margin-top:18px"><h2>Arithmetic, pooled model, today's state</h2>
+      <table><thead><tr><th>Bucket</th><th>Probability</th><th>Avg move in bucket</th><th>Prob × move</th></tr></thead><tbody>
+      ${D.buckets_pct.map((_, i) => `<tr class="num"><td style="font-family:var(--sans)">${bucketDollar(t.buckets_dollars[i])}</td><td>${pct(t.pooled.probs[i], 1)}</td><td>${money(mo.bucket_mean[i] * P)}</td><td>${money(mo.bucket_contrib[i] * P)}</td></tr>`).join("")}
+      <tr class="num"><td style="font-family:var(--sans)"><b>Sum</b></td><td></td><td></td><td><b>${money(mo.ev * P)}</b></td></tr></tbody></table></div>`;
+}
+
+function backtest(t) {
+  const pb = D.pooled_backtest, ob = t.own.backtest;
+  const row = (name, d) => d && d.logloss_gain !== undefined ? `<tr class="num"><td style="font-family:var(--sans)">${name}</td><td>${d.rows.toLocaleString()}</td><td>${(d.logloss_gain >= 0 ? "+" : "") + d.logloss_gain.toFixed(4)}</td><td>[${d.logloss_gain_ci90.join(", ")}]</td><td>${pct(d.direction_hit_model, 1)}</td><td>${pct(d.direction_hit_baseline, 1)}</td></tr>` : "";
+  return `
+    <div class="grid g2">
+      <div class="card"><h2>Pooled, ${D.n_tickers} tickers</h2><div class="verdict ${vClass(pb.verdict)}">${pb.verdict}</div></div>
+      <div class="card"><h2>${t.ticker} alone</h2><div class="verdict ${vClass(ob.verdict)}">${ob.verdict}</div></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <table><thead><tr><th>Test</th><th>Rows</th><th>Gain vs baseline</th><th>90% CI</th><th>Beat-sector hit, model</th><th>Beat-sector hit, baseline</th></tr></thead><tbody>
+      ${row("Pooled, dev period " + pb.dev.start + " to " + pb.dev.end, pb.dev)}${row(t.ticker + " alone, quick walk-forward", ob)}
+      </tbody></table>
+      <p class="m" style="margin-top:12px">Expanding-window walk-forward. On each refit date the model only trains on rows whose ${D.horizon}-day outcome was already known, then scores the days that follow against the lazy alternative of ignoring the state. Gain is baseline log loss minus model log loss; positive means the state helped; the interval is a date-block bootstrap. Holdout (last 20%) is locked and not shown here. If the whole interval is above zero on both rows you have something. If it straddles zero, you don't, and the Spread tab is just the all-days histogram wearing a costume.</p>
+    </div>
+    ${pb.dev.calibration ? `<div class="card" style="margin-top:18px"><h2>Calibration, pooled</h2><table><thead><tr><th>Model said P(beats)</th><th>Actually beat</th><th>Rows</th></tr></thead><tbody>${pb.dev.calibration.map(c => `<tr class="num"><td>${pct(c.predicted_p_up, 1)}</td><td>${pct(c.realized_up_rate, 1)}</td><td>${c.rows.toLocaleString()}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+}
+
+function distress(t) {
+  const X = D.distress;
+  if (!X) return `<div class="note">No EDGAR run yet. <span class="num">python fetch_edgar.py --years 2012 2024</span> then <span class="num">python run_distress.py</span>, then rebuild the terminal. That pipeline pulls every 10-K filer per year, dead ones included, from SEC EDGAR for free.</div>`;
+  const c = t.distress, bt = X.backtest;
+  const outcomeBars = probs => X.outcomes.map(o => `<div class="bar-h"><span style="color:var(--muted)">${o}</span><div class="track"><div class="fill ${o === "filing" || o === "acquired" ? "g" : ""}" style="width:${Math.min(100, probs[o] * 100 / Math.max(...Object.values(probs)))}%"></div></div><span class="num" style="text-align:right">${pct(probs[o], 1)}</span></div>`).join("");
+  const feats = c ? Object.entries(c.features).map(([k, v]) => `<div class="k">${k === "log_assets" ? "total assets" : k.replace(/_/g, " ")}</div><div class="v num">${v === null ? "∞" : k === "log_assets" ? "$" + (10 ** v).toLocaleString(undefined, {maximumFractionDigits: 0}) : v.toFixed(3)}</div>`).join("") : "";
+  return `
+    ${X.mapping_note ? `<div class="note" style="margin-bottom:16px">${X.mapping_note}</div>` : ""}
+    <div class="grid g2">
+      <div class="card"><h2>${c ? `${c.name} · filings ${c.year}` : "no EDGAR match"}</h2>
+        ${c ? `<div class="big num" style="margin-bottom:10px">${pct(c.p_bad_state, 1)}<small>base ${pct(X.baseline.bankrupt + X.baseline.deregistered, 1)}</small></div><div class="lbl" style="margin-bottom:12px">P(bankrupt or deregistered within 2 years) · state ${c.state}</div>${outcomeBars(c.probs)}<p class="m" style="margin-top:10px">Logistic model on the same filing, for comparison: ${pct(c.p_bad_logit, 1)}.</p>` : `<p class="m">${t.ticker} isn't in the latest EDGAR cohort with a ticker mapping. Companies that no longer trade have no ticker, which is the point.</p>`}</div>
+      <div class="card"><h2>From the 10-K</h2>${c ? `<div class="kv">${feats}<div class="k">going concern language</div><div class="v">${c.going_concern ? "yes" : "no"}</div></div>` : ""}</div>
+    </div>
+    <div class="card" style="margin-top:18px"><h2>Does the filing state predict exits? (${X.source}, cohorts ${bt.years[0]}–${bt.years[bt.years.length - 1]})</h2>
+      <div class="verdict ${vClass(bt.verdict)}">${bt.verdict}</div>
+      <div class="grid g3" style="margin-top:14px">
+        <div><div class="big num">${bt.auc_state.toFixed(3)}</div><div class="lbl">AUC, filing states (0.5 = coin flip)</div></div>
+        <div><div class="big num">${bt.auc_logit.toFixed(3)}</div><div class="lbl">AUC, logistic on continuous features</div></div>
+        <div><div class="big num">${pct(bt.bad_rate, 1)}</div><div class="lbl">base rate of bad exits within 2y, ${bt.rows.toLocaleString()} company-years</div></div>
+      </div>
+      <p class="m" style="margin-top:12px">Walk-forward by cohort year: the model for cohort Y is trained only on cohorts whose two-year window had closed by Y. Features come from the Y filing alone; the model never sees who died. This is the one part of the terminal built on data that includes the companies that didn't make it.</p></div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card"><h2>Filing state → outcome within 2y</h2><table><thead><tr><th>State</th><th>n</th>${X.outcomes.map(o => `<th>${o}</th>`).join("")}</tr></thead><tbody>
+        ${X.state_table.map(r => `<tr class="num ${c && r.state === c.state ? "hl" : ""}"><td style="font-family:var(--sans);font-size:11px">${r.state}</td><td>${r.n.toLocaleString()}</td>${X.outcomes.map(o => `<td>${pct(r.probs[o], 1)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <div class="card"><h2>Filing state this year → next year (or exit)</h2>${heat(X.transition, X.states, [...X.states, "EXIT"])}</div>
+    </div>`;
+}
+
+// ------------------------------------------------------------------ boot
+if (D) {
+  renderList(); renderRail();
+  document.getElementById("foot").textContent = `${D.horizon}d · relative to ${D.sector} · ${D.factors.length} factors · ↑↓ keys, 1–6 tabs`;
+  const first = Object.keys(D.tickers)[0]; if (first) select(first);
+} else {
+  document.getElementById("content").innerHTML = `<div class="empty">No data baked in. Run build_terminal.py.</div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+__pycache__/
+data/*.csv
+output/
+.venv/
+data/universe/
+data/edgar/

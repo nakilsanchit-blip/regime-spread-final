@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regime spread</title>
+<style>
+  :root {
+    --base: #EEF1F4;
+    --surface: #FFFFFF;
+    --ink: #1B2530;
+    --ink-soft: #55616E;
+    --rule: #CFD6DD;
+    --model: #146E6E;
+    --model-soft: #D5E8E8;
+    --baseline: #93A0AE;
+    --caution: #9A6412;
+    --caution-bg: #FBF3E3;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--base); }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Charter", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 34px; line-height: 1.2; font-weight: 400; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h1 b { font-weight: 700; }
+  h2 { font-size: 22px; font-weight: 700; margin: 56px 0 12px; }
+  p { margin: 0 0 12px; max-width: 68ch; }
+  .lede { color: var(--ink-soft); font-size: 18px; }
+  .meta { color: var(--ink-soft); font-size: 15px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--rule); padding: 24px; margin-top: 24px; }
+  .panel.tight { padding: 16px 20px; }
+
+  svg text { font-family: inherit; }
+  .hero-readout { display: flex; gap: 40px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rule); }
+  .hero-readout div { min-width: 140px; }
+  .hero-readout .num { font-size: 28px; line-height: 1.1; }
+  .hero-readout .lbl { color: var(--ink-soft); font-size: 15px; }
+  .hero-readout .num small { font-size: 16px; color: var(--baseline); margin-left: 6px; }
+
+  .legend { display: flex; gap: 20px; font-size: 15px; color: var(--ink-soft); margin-top: 8px; }
+  .legend span::before { content: ""; display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: 1px; }
+  .legend .m::before { background: var(--model); }
+  .legend .b::before { border: 2px solid var(--baseline); background: transparent; height: 6px; }
+
+  .verdict { border-left: 4px solid var(--model); padding: 4px 0 4px 16px; font-size: 19px; }
+  .verdict.bad { border-color: var(--caution); }
+  .verdict.flat { border-color: var(--baseline); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 400; color: var(--ink-soft); }
+  th:first-child, td:first-child { text-align: left; }
+  td.better { color: var(--model); font-weight: 700; }
+  .locked td { color: var(--ink-soft); font-style: italic; }
+
+  .matrix td { padding: 4px 6px; font-size: 13px; text-align: center; }
+  .matrix th { font-size: 12px; text-align: center; }
+  .matrix th:first-child { text-align: left; }
+  .matrix td:first-child { text-align: left; white-space: nowrap; font-size: 12px; }
+
+  .caution { background: var(--caution-bg); border: 1px solid #E5CFA0; padding: 20px 24px; margin-top: 24px; }
+  .caution h3 { margin: 0 0 8px; font-size: 17px; color: var(--caution); }
+  .caution p { margin-bottom: 10px; }
+  .caution p:last-child { margin-bottom: 0; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--ink-soft); }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; background: var(--base); padding: 1px 5px; }
+  :focus-visible { outline: 3px solid var(--model); outline-offset: 2px; }
+  @media (max-width: 560px) {
+    h1 { font-size: 26px; }
+    .hero-readout { gap: 20px; }
+    .panel { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<main id="app">
+  <p>Loading…</p>
+</main>
+
+<script>
+const R = /*__RESULTS__*/null;
+
+function pct(x, d = 0) { return (x * 100).toFixed(d) + "%"; }
+function money(x) {
+  const a = Math.abs(x);
+  const txt = a >= 100 ? a.toFixed(0) : a >= 10 ? a.toFixed(1) : a.toFixed(2);
+  return (x < 0 ? "−$" : "$") + txt;
+}
+function bucketDollar(b) {
+  if (b.lo === null) return "below " + money(b.hi);
+  if (b.hi === null) return "above " + money(b.lo);
+  return money(b.lo) + " to " + money(b.hi);
+}
+function factorSentence() {
+  const words = {
+    stock_momentum: ["stock momentum up", "stock momentum down"],
+    sector_momentum: ["sector momentum up", "sector momentum down"],
+    vol_regime: ["realized vol above its yearly median", "realized vol below its yearly median"],
+    vix_regime: ["VIX above its yearly median", "VIX below its yearly median"],
+    rate_trend: ["10-year yield rising", "10-year yield falling"],
+    volume_regime: ["volume above its yearly median", "volume below its yearly median"],
+  };
+  return R.factors.map(f => (words[f] || [f, "not " + f])[R.factor_values[f] ? 0 : 1]).join(", ");
+}
+
+// ------------------------------------------------------------------ hero chart
+function spreadChart() {
+  const n = R.buckets_pct.length;
+  const W = 860, H = 360, padL = 16, padR = 16, top = 44, bottom = 96;
+  const bw = (W - padL - padR) / n;
+  const model = R.today ? R.today.probs : R.unconditional;
+  const base = R.unconditional;
+  const maxP = Math.max(...model, ...base) * 1.15;
+  const y = p => top + (H - top - bottom) * (1 - p / maxP);
+  const y0 = H - bottom;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Probability of each price-move bucket">`;
+
+  // zero divider: between the last negative bucket and the first non-negative one
+  const zeroIdx = R.buckets_dollars.findIndex(b => b.lo_pct !== null && b.lo_pct >= 0);
+  if (zeroIdx > 0) {
+    const x = padL + zeroIdx * bw;
+    s += `<line x1="${x}" x2="${x}" y1="${top - 20}" y2="${y0 + 8}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 4"/>`;
+    s += `<text x="${x - 6}" y="${top - 24}" text-anchor="end" font-size="13" fill="var(--ink-soft)">down</text>`;
+    s += `<text x="${x + 6}" y="${top - 24}" font-size="13" fill="var(--ink-soft)">up</text>`;
+  }
+
+  for (let i = 0; i < n; i++) {
+    const x = padL + i * bw;
+    const inner = bw * 0.62, ox = x + (bw - inner) / 2;
+    // baseline: hollow outline
+    s += `<rect x="${ox}" y="${y(base[i])}" width="${inner}" height="${y0 - y(base[i])}" fill="none" stroke="var(--baseline)" stroke-width="2"/>`;
+    // model: solid, slightly narrower so the outline stays visible
+    const mw = inner * 0.72, mx = x + (bw - mw) / 2;
+    s += `<rect x="${mx}" y="${y(model[i])}" width="${mw}" height="${y0 - y(model[i])}" fill="var(--model)"/>`;
+    s += `<text x="${x + bw / 2}" y="${y(model[i]) - 7}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--model)">${pct(model[i])}</text>`;
+    // Stagger alternate labels onto two rows so long dollar ranges don't collide.
+    const dy = i % 2 === 0 ? 20 : 40;
+    s += `<text x="${x + bw / 2}" y="${y0 + dy}" text-anchor="middle" font-size="13">${bucketDollar(R.buckets_dollars[i])}</text>`;
+    s += `<text x="${x + bw / 2}" y="${y0 + 62}" text-anchor="middle" font-size="11" fill="var(--ink-soft)">${R.buckets_pct[i]}</text>`;
+  }
+  s += `<line x1="${padL}" x2="${W - padR}" y1="${y0}" y2="${y0}" stroke="var(--ink)" stroke-width="1"/>`;
+  s += `</svg>`;
+  return s;
+}
+
+// ------------------------------------------------------------------ EV / Kelly
+function evPanel() {
+  const t = R.today; if (!t) return "";
+  const mo = t.moments, mb = R.unconditional_moments, P = R.price;
+  const kelly = k => k <= 0 ? "0% (EV is negative)" : k > 1 ? pct(k) + " (implies leverage)" : pct(k);
+  const row = (label, f) => `<tr><td>${label}</td><td>${f(mo)}</td><td class="meta">${f(mb)}</td></tr>`;
+  const table = `<table>
+    <thead><tr><th></th><th>given today's state</th><th>all days</th></tr></thead><tbody>
+    ${row("Expected move", m => money(m.ev * P) + " (" + (m.ev >= 0 ? "+" : "") + pct(m.ev, 2) + ")")}
+    ${row("Standard deviation", m => money(m.std * P) + " (" + pct(m.std, 1) + ")")}
+    ${row("EV ÷ std", m => (m.ev_over_std >= 0 ? "+" : "") + m.ev_over_std.toFixed(2))}
+    ${row("Half Kelly", m => kelly(m.kelly_half))}
+    ${row("Full Kelly", m => kelly(m.kelly_full))}
+    </tbody></table>`;
+  const breakdown = `<table style="margin-top:20px">
+    <thead><tr><th>Bucket</th><th>Probability</th><th>Average move inside bucket</th><th>Probability × move</th></tr></thead><tbody>` +
+    R.buckets_pct.map((_, i) => `<tr>
+      <td>${bucketDollar(R.buckets_dollars[i])}</td>
+      <td>${pct(t.probs[i], 1)}</td>
+      <td>${money(mo.bucket_mean[i] * P)}</td>
+      <td>${money(mo.bucket_contrib[i] * P)}</td></tr>`).join("") +
+    `<tr><td><strong>Sum = expected move</strong></td><td></td><td></td><td><strong>${money(mo.ev * P)}</strong></td></tr>
+    </tbody></table>`;
+  return `
+    <h2>Expected value and how much to bet</h2>
+    <p>Expected move is each bucket's probability times the average move history actually produced inside that bucket, summed. Standard deviation is the width of the same distribution. Kelly is the bankroll fraction that maximises long-run growth if the distribution is right: EV divided by variance. Half Kelly is what people who use Kelly actually use.</p>
+    <div class="panel">
+      ${table}
+      <p class="meta" style="margin-top:12px">${R.relative
+        ? `Relative mode: EV is expected out- or under-performance vs ${R.sector}. A positive number means long ${R.ticker} and short ${R.sector} in equal dollars, not long ${R.ticker} alone.`
+        : `Plain mode: EV includes ${R.ticker}'s whole historical drift, survivor tilt and all. Run with --relative for the version that has to beat the sector.`}
+      The Kelly numbers assume the distribution above is correct. The backtest section below is the check on that; if it says the state adds noise, use the all-days column, and if you doubt the all-days column too, size smaller still.</p>
+      <details style="margin-top:12px"><summary>The arithmetic, bucket by bucket</summary>${breakdown}</details>
+    </div>`;
+}
+
+// ------------------------------------------------------------------ backtest
+function scoreRows(d, name) {
+  if (!d || d.locked) {
+    return `<tr class="locked"><td>${name}</td><td colspan="6">locked (${d.start} to ${d.end}, ${d.rows} rows). Run with <code>--unlock-holdout</code> once you're done tinkering.</td></tr>`;
+  }
+  const gainClass = d.logloss_gain_ci90[0] > 0 ? "better" : "";
+  return `<tr>
+    <td>${name}<br><span class="meta">${d.start} to ${d.end}</span></td>
+    <td>${d.rows}<br><span class="meta">≈${d.independent_obs} indep.</span></td>
+    <td>${d.logloss_model.toFixed(4)}</td>
+    <td>${d.logloss_baseline.toFixed(4)}</td>
+    <td class="${gainClass}">${(d.logloss_gain >= 0 ? "+" : "") + d.logloss_gain.toFixed(4)}<br><span class="meta">[${d.logloss_gain_ci90[0]}, ${d.logloss_gain_ci90[1]}]</span></td>
+    <td>${pct(d.direction_hit_model, 1)}</td>
+    <td>${pct(d.direction_hit_baseline, 1)}</td>
+  </tr>`;
+}
+function calibrationTable(d) {
+  if (!d || !d.calibration || !d.calibration.length) return "";
+  return `<table style="margin-top:16px"><thead><tr><th>Model said P(${R.relative ? "beats sector" : "up"})</th><th>Actually did</th><th>Rows</th></tr></thead><tbody>` +
+    d.calibration.map(c => `<tr><td>${pct(c.predicted_p_up, 1)}</td><td>${pct(c.realized_up_rate, 1)}</td><td>${c.rows}</td></tr>`).join("") +
+    `</tbody></table><p class="meta" style="margin-top:8px">If the two columns track each other, the probabilities mean what they say. If the second column is flat while the first moves, the model is inventing confidence.</p>`;
+}
+
+// ------------------------------------------------------------------ universe
+function universePanel() {
+  const U = R.universe; if (!U) return "";
+  const yrs = U.alive_by_year, maxN = Math.max(...yrs.map(y => y.n));
+  const W = 860, H = 150, pad = 30, bw = (W - 2 * pad) / yrs.length;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Number of stocks trading each year">`;
+  yrs.forEach((y, i) => {
+    const h = (H - 50) * y.n / maxN, x = pad + i * bw;
+    svg += `<rect x="${x + 2}" y="${H - 30 - h}" width="${bw - 4}" height="${h}" fill="var(--model)"/>`;
+    svg += `<text x="${x + bw / 2}" y="${H - 30 - h - 5}" text-anchor="middle" font-size="11" fill="var(--ink-soft)">${y.n}</text>`;
+    if (i % 2 === 0 || yrs.length < 12) svg += `<text x="${x + bw / 2}" y="${H - 12}" text-anchor="middle" font-size="11">${y.year}</text>`;
+  });
+  svg += `</svg>`;
+  const fates = Object.entries(U.fates).map(([k, v]) => `${v} ${k}`).join(", ");
+  const sc = R.survivorship_check;
+  let check = "";
+  if (sc) {
+    const f = m => `${pct(m.p_up, 1)} / ${(m.ev >= 0 ? "+" : "") + pct(m.ev, 2)}`;
+    check = `<h3 style="margin:24px 0 8px;font-size:17px">What the dead stocks change</h3>
+      <p class="meta">Same model, fit twice: once on only the names still trading (${sc.baseline.survivors.rows.toLocaleString()} rows), once on everything (${sc.baseline.all.rows.toLocaleString()} rows). Cells are P(${R.relative ? "beats sector" : "up"}) / monthly EV.</p>
+      <table><thead><tr><th></th><th>Survivors only</th><th>Everyone, dead included</th></tr></thead><tbody>
+      <tr><td><strong>All days</strong></td><td>${f(sc.baseline.survivors)}</td><td>${f(sc.baseline.all)}</td></tr>
+      ${sc.states.map(r => `<tr${R.today && r.state === R.today.state ? ' style="background:var(--model-soft)"' : ""}><td>${r.state}</td><td>${f(r.survivors)}</td><td>${f(r.all)}</td></tr>`).join("")}
+      </tbody></table>
+      <p class="meta" style="margin-top:8px">The gap between the columns is survivorship bias, measured. A single-stock run on a name that's still around lives entirely in the left column.</p>`;
+  }
+  return `
+    <h2>The universe</h2>
+    <p>The distribution above is pooled across ${U.n_tickers} stocks (${fates}), ${U.first_date} to ${U.last_date}, from ${U.source}. ${R.ticker} is just the one being scored with it. Bars show how many names were trading each year; the ones that drop off are the ones a survivors-only dataset never shows you.</p>
+    <div class="panel">${svg}${check}</div>`;
+}
+
+// ------------------------------------------------------------------ track record
+function trackRecord() {
+  const tr = R.backtest.track_record; if (!tr) return "";
+  const S = tr.summary, P = R.price;
+  const what = R.relative ? "beat " + R.sector : "went up";
+  const pctS = x => x === null ? "n/a" : pct(x);
+  const rowHtml = r => `<tr${r.period === "holdout" ? ' class="locked"' : ""}>
+      <td>${r.date}</td><td>${r.state}</td>
+      <td>${(r.ev_model >= 0 ? "+" : "") + pct(r.ev_model, 1)}</td>
+      <td>${(r.realized >= 0 ? "+" : "") + pct(r.realized, 1)}</td>
+      <td>${r.period === "holdout" ? "locked" : r.hit ? "yes" : "no"}</td></tr>`;
+  const devRows = tr.months.filter(r => r.period === "dev");
+  const recent = devRows.slice(-24);
+  const table = rows => `<table><thead><tr><th>Date</th><th>State then</th><th>EV computed then</th><th>What happened</th><th>Same sign?</th></tr></thead><tbody>${rows.map(rowHtml).join("")}</tbody></table>`;
+  return `
+    <h2>Month by month, in hindsight</h2>
+    <p>Every ${R.horizon} trading days, using only data that existed on that date: the EV the tool would have shown, and what the stock then did. "Same sign" means positive EV and the stock ${what}, or negative EV and it didn't.</p>
+    <div class="panel">
+      <p>Across ${S.n} months, EV was positive in <strong>${S.n_ev_positive}</strong> of them. When it was positive, the stock ${what} <strong>${pctS(S.hit_when_positive)}</strong> of the time${S.hit_when_negative !== null ? `; when negative, it didn't ${pctS(S.hit_when_negative)} of the time` : ""}. Just saying "up" every month would have scored <strong>${pctS(S.always_up)}</strong>.</p>
+      <p class="meta">${S.n_ev_positive / S.n > 0.9
+        ? `EV was positive in nearly every month. That means the tool was never really making a call; it was repeating the stock's average, and the hit rate is just how often the stock ${what}. That is what a survivor's history does to EV.`
+        : `EV changed sign across months, so the hit rate is at least a test of something. Compare it to the always-up number: that is the bar.`}</p>
+      ${table(recent)}
+      <p class="meta" style="margin-top:8px">Last ${recent.length} development months shown.</p>
+      <details style="margin-top:12px"><summary>All ${tr.months.length} months</summary>${table(tr.months)}</details>
+    </div>`;
+}
+
+// ------------------------------------------------------------------ states & matrix
+function stateTable() {
+  return `<table><thead><tr><th>State</th><th>Rows</th><th>≈ independent obs</th><th>P(${R.relative ? "beats sector" : "up"})</th><th>EV</th><th>Std</th></tr></thead><tbody>` +
+    R.state_table.map(s => `<tr${R.today && s.state === R.today.state ? ' style="background:var(--model-soft)"' : ""}>
+      <td>${s.state}</td><td>${s.rows}</td><td>${s.independent_obs}</td><td>${pct(s.p_up, 1)}</td><td>${(s.ev >= 0 ? "+" : "") + pct(s.ev, 1)}</td><td>${pct(s.std, 1)}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+function matrix() {
+  const S = R.states;
+  const short = s => s.split("/").map(w => w.replace(/Vol|VIX|Rates|Volume/g, m => ({Vol:"V",VIX:"X",Rates:"R",Volume:"Q"}[m]))).join("/");
+  let h = `<table class="matrix"><thead><tr><th>from ↓ to →</th>` + S.map(s => `<th>${short(s)}</th>`).join("") + `</tr></thead><tbody>`;
+  R.transition.forEach((row, i) => {
+    h += `<tr><td>${S[i]}<br><span class="meta">${R.transition_counts[i].reduce((a,b)=>a+b,0)} steps</span></td>`;
+    row.forEach(p => {
+      const a = Math.min(0.85, p * 1.6);
+      h += `<td style="background:rgba(20,110,110,${a.toFixed(2)});color:${a > 0.45 ? "#fff" : "var(--ink)"}">${pct(p)}</td>`;
+    });
+    h += `</tr>`;
+  });
+  return h + `</tbody></table>`;
+}
+
+// ------------------------------------------------------------------ render
+function render() {
+  const t = R.today;
+  const bt = R.backtest;
+  const v = bt.verdict || "";
+  const vClass = v.startsWith("The factors beat") ? "" : v.startsWith("The factors do worse") ? "bad" : "flat";
+  const shrinkNote = t ? (t.weight_on_state < 0.5
+    ? `Only ${t.independent_obs} independent observations in this state, so ${pct(1 - t.weight_on_state)} of what you see is the all-days distribution. The state barely moves the needle because there isn't enough history to trust it.`
+    : `${t.independent_obs} independent observations in this state; the estimate is ${pct(t.weight_on_state)} state history, ${pct(1 - t.weight_on_state)} all-days history.`) : "";
+
+  document.getElementById("app").innerHTML = `
+    <h1><b>${R.ticker}</b> at $${R.price.toFixed(2)}. ${R.relative ? `How far does it beat or trail ${R.sector} over` : "Where does it land in"} ${R.horizon} trading days?</h1>
+    <p class="lede">Today's state: ${factorSentence()}.</p>
+    <p class="meta">As of ${R.as_of}. ${R.source}, ${R.data_start} to ${R.data_end}. Sector proxy ${R.sector}.${R.universe ? ` Probabilities are pooled across ${R.universe.n_tickers} stocks; see "The universe" below.` : ""}</p>
+
+    <section class="panel">
+      ${spreadChart()}
+      <div class="legend"><span class="m">given today's state</span><span class="b">all days, ignoring state</span></div>
+      ${R.relative ? `<p class="meta" style="margin-top:10px">Buckets are the stock's move minus ${R.sector}'s move, in dollars at today's price. "Up" means outperformed the sector, not went up.</p>` : ""}
+      <div class="hero-readout">
+        <div><div class="num">${t ? pct(t.p_up, 1) : "—"}<small>${t ? pct(t.p_up_baseline, 1) : ""}</small></div><div class="lbl">${R.relative ? "chance it beats " + R.sector : "chance it's higher"}</div></div>
+        <div><div class="num">${t ? t.independent_obs : "—"}</div><div class="lbl">independent obs in this state</div></div>
+        <div><div class="num">${t ? pct(t.weight_on_state) : "—"}</div><div class="lbl">weight on state history</div></div>
+      </div>
+      <p class="meta" style="margin-top:14px">${shrinkNote}</p>
+    </section>
+
+    ${evPanel()}
+
+    <h2>Does knowing the state actually help?</h2>
+    <p>Walk-forward test: every ${R.config.refit_every} days the model is refit on history whose outcomes were already known, then scored on the days that follow. It's compared against the lazy alternative of always using the all-days distribution.</p>
+    <div class="panel">
+      <div class="verdict ${vClass}">${v}</div>
+      <table style="margin-top:20px">
+        <thead><tr><th>Period</th><th>Rows</th><th>Log loss, model</th><th>Log loss, baseline</th><th>Gain (90% CI)</th><th>${R.relative ? "Beat-sector" : "Direction"} hit, model</th><th>${R.relative ? "Beat-sector" : "Direction"} hit, baseline</th></tr></thead>
+        <tbody>${scoreRows(bt.dev, "Development")}${scoreRows(bt.holdout, "Holdout")}</tbody>
+      </table>
+      <p class="meta" style="margin-top:10px">Lower log loss is better. Gain is baseline minus model; positive means the state helped. The interval comes from a block bootstrap, because overlapping ${R.horizon}-day windows aren't independent samples.</p>
+      ${calibrationTable(bt.dev)}
+    </div>
+
+    ${trackRecord()}
+
+    ${universePanel()}
+
+    <h2>The states</h2>
+    <p>${R.states.length} states from ${R.factors.length} binary factors. Today's is shaded. Watch the independent-observation column: a state with fewer than about 30 is mostly borrowing the all-days distribution.</p>
+    <div class="panel tight">${stateTable()}</div>
+
+    <h2>State-to-state transitions</h2>
+    <p>The literal Markov matrix: given the state on day t, how often each state showed up ${R.horizon} days later. Read across a row. Rows with few steps are shrunk toward the overall state frequencies so you don't see fake 0% and 100% cells.</p>
+    <div class="panel tight" style="overflow-x:auto">${matrix()}</div>
+
+    <div class="caution">
+      <h3>What this does and doesn't protect you from</h3>
+      <p><strong>Overfitting</strong>: guarded against by shrinkage, purged walk-forward scoring, a locked holdout, and binary factors. Not guarded against: you. If you change lookbacks, factors, or bucket edges until the development score looks good, you've overfit by hand. Decide the config, run it, believe the result.</p>
+      <p><strong>Survivorship bias</strong>: ${R.universe ? "This run pools a universe that includes names that stopped trading, so the histograms contain the outcomes a survivors-only dataset is missing. How complete that is depends on the source: a hand-made ticker list plus a sample of delisted names is a lot better than one survivor, and still not a full point-in-time index." : R.relative ? "Relative mode strips the market and sector drift out of the target, so the survivor's up-tilt is no longer the headline. It does not remove the fact that " + R.ticker + "'s own outperformance is in the history." : "You chose " + R.ticker + " because it exists today and you've heard of it."}${R.universe ? "" : ` Companies that did the same thing and went to zero aren't in anyone's history. This model describes ${R.ticker}'s own past, which is fine for "what does this stock do," but any claim about "stocks in this state" would need a universe that includes the dead ones. Build one with build_universe.py and run with --universe.`}</p>
+      <p><strong>Regime drift</strong>: the transition matrix estimated on 2012 to 2018 may not describe 2026. The expanding window keeps old data in. A rolling window forgets it. Neither is right.</p>
+      <p><strong>What you're looking at</strong>: a distribution, not a call. If the model and baseline bars are nearly the same height, the honest read is that today's state doesn't tell you much, and that's a valid, useful result.</p>
+    </div>
+
+    <details>
+      <summary>Configuration</summary>
+      <pre style="font-size:13px;background:var(--surface);padding:12px;border:1px solid var(--rule);overflow-x:auto">${JSON.stringify(R.config, null, 2)}</pre>
+    </details>
+    <p class="meta" style="margin-top:24px">Generated ${R.generated_at}. Not investment advice.</p>
+  `;
+}
+
+if (R) render();
+else document.getElementById("app").innerHTML = "<p>No results baked in. Run <code>python run.py --demo</code> and open output/dashboard.html.</p>";
+</script>
+</body>
+</html>
